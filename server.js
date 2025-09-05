@@ -6,22 +6,31 @@ const app = express();
 const nodemailer = require('nodemailer');
 const crypto = require('crypto');
 
+// Configure CORS with proper headers and preflight handling
+const allowedOrigins = [
+  'http://localhost:3000',
+  'http://192.168.254.154:3000',
+  'https://frontend-nine-gamma-56.vercel.app',
+  'https://frontend-nine-gamma-56.vercel.app/'
+];
+
 // Enable CORS for all routes
-app.use(cors({
-  origin: (origin, callback) => {
-    const allowedOrigins = [
-      'http://localhost:3000',
-      'http://192.168.254.154:3000',
-      'https://frontend-nine-gamma-56.vercel.app/'
-    ];
-    if (!origin || allowedOrigins.includes(origin)) {
-      callback(null, true);
-    } else {
-      callback(new Error('Not allowed by CORS'));
-    }
-  },
-  credentials: true
-}));
+app.use((req, res, next) => {
+  const origin = req.headers.origin;
+  if (allowedOrigins.includes(origin)) {
+    res.header('Access-Control-Allow-Origin', origin);
+  }
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
+  res.header('Access-Control-Allow-Credentials', true);
+  
+  // Handle preflight requests
+  if (req.method === 'OPTIONS') {
+    return res.sendStatus(200);
+  }
+  
+  next();
+});
 app.use(express.json({ limit: '50mb' }));
 app.use(bodyParser.json({ limit: '50mb' }));
 
