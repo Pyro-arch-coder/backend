@@ -5,53 +5,49 @@ require('dotenv').config();
 const dns = require('dns');
 dns.setDefaultResultOrder('ipv4first');
 
-// Database configuration with socket connection
+// Database configuration for Windows with named pipes
 const dbConfig = {
+  host: 'localhost',
   user: 'root',
   password: '',
   database: 'soloparent',
-  // Use socket path instead of host/port
-  socketPath: 'C:/xampp/mysql/mysql.sock', // Common XAMPP socket path
+  port: 3306,
+  
   // Connection settings
   connectionLimit: 10,
   connectTimeout: 10000, // 10 seconds
   waitForConnections: true,
   queueLimit: 0,
+  
+  // Windows specific settings
+  flags: ['-named-pipe'],
+  
   // Debug
   debug: true,
+  
   // Additional options
   multipleStatements: true,
-  // Ensure no password is sent
-  insecureAuth: true,
-  // Force connection type
-  flags: ['-named-pipe']
+  insecureAuth: true
 };
-
-// If XAMPP socket path doesn't work, try these common paths
-const commonSocketPaths = [
-  'C:/xampp/mysql/mysql.sock',
-  'C:/xampp/mysql/data/mysql.sock',
-  'C:/wamp64/bin/mysql/mysql[version]/data/mysql.sock',
-  '/tmp/mysql.sock',
-  '/var/run/mysqld/mysqld.sock'
-];
 
 console.log('Database config:', dbConfig);
 
 const pool = mysql.createPool(dbConfig);
 
-// Enhanced connection test with multiple connection methods
+// Enhanced connection test for Windows
 console.log('\n=== 🛠️ Testing database connection ===');
 console.log('🔧 Connection details:', {
-  socketPath: dbConfig.socketPath,
+  host: dbConfig.host,
+  port: dbConfig.port,
   database: dbConfig.database,
   user: dbConfig.user,
-  hasPassword: dbConfig.password ? 'Yes' : 'No'
+  hasPassword: dbConfig.password ? 'Yes' : 'No',
+  connectionType: 'Named Pipe (Windows)'
 });
 
-console.log('\n🔍 Checking if MySQL is running...');
+console.log('\n🔍 Attempting to connect to MySQL server...');
 
-// Try to get a connection
+// Try to get a connection using named pipe
 pool.getConnection((err, connection) => {
   if (err) {
     console.error('\n❌ Connection failed:', err.message);
