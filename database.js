@@ -6,6 +6,7 @@ const dbConfig = {
   user: process.env.DB_USER || 'root',
   password: process.env.DB_PASSWORD || '',
   database: process.env.DB_NAME || 'soloparent',
+  port: process.env.DB_PORT || 3306,  // Explicitly setting MySQL port to 3306
   connectionLimit: 10,
   waitForConnections: true,
   queueLimit: 0,
