@@ -5,39 +5,45 @@ require('dotenv').config();
 const dns = require('dns');
 dns.setDefaultResultOrder('ipv4first');
 
-// Database configuration with forced IPv4 and no password
+// Database configuration with socket connection
 const dbConfig = {
-  host: '127.0.0.1',  // Force IPv4
   user: 'root',
-  password: '',       // No password
+  password: '',
   database: 'soloparent',
-  port: 3306,
+  // Use socket path instead of host/port
+  socketPath: 'C:/xampp/mysql/mysql.sock', // Common XAMPP socket path
   // Connection settings
   connectionLimit: 10,
   connectTimeout: 10000, // 10 seconds
   waitForConnections: true,
   queueLimit: 0,
-  // Force TCP/IP connection (not socket)
-  socketPath: null,
-  // Disable IPv6
-  ipFamily: 4,
   // Debug
   debug: true,
   // Additional options
   multipleStatements: true,
   // Ensure no password is sent
-  insecureAuth: true
+  insecureAuth: true,
+  // Force connection type
+  flags: ['-named-pipe']
 };
+
+// If XAMPP socket path doesn't work, try these common paths
+const commonSocketPaths = [
+  'C:/xampp/mysql/mysql.sock',
+  'C:/xampp/mysql/data/mysql.sock',
+  'C:/wamp64/bin/mysql/mysql[version]/data/mysql.sock',
+  '/tmp/mysql.sock',
+  '/var/run/mysqld/mysqld.sock'
+];
 
 console.log('Database config:', dbConfig);
 
 const pool = mysql.createPool(dbConfig);
 
-// Enhanced connection test
+// Enhanced connection test with multiple connection methods
 console.log('\n=== 🛠️ Testing database connection ===');
 console.log('🔧 Connection details:', {
-  host: dbConfig.host,
-  port: dbConfig.port,
+  socketPath: dbConfig.socketPath,
   database: dbConfig.database,
   user: dbConfig.user,
   hasPassword: dbConfig.password ? 'Yes' : 'No'
@@ -45,6 +51,7 @@ console.log('🔧 Connection details:', {
 
 console.log('\n🔍 Checking if MySQL is running...');
 
+// Try to get a connection
 pool.getConnection((err, connection) => {
   if (err) {
     console.error('\n❌ Connection failed:', err.message);
