@@ -13,7 +13,6 @@ const allowedOrigins = [
   'https://frontend-nine-gamma-56.vercel.app'
 ];
 
-// Database connection is now handled in database.js
 // Use cors middleware with specific options
 app.use(cors({
   origin: function (origin, callback) {
@@ -53,7 +52,6 @@ cloudinary.config({
 });
 
 const { pool, queryDatabase } = require('./database');
-const mysql = require('mysql2/promise');
 
 // Add logging middleware
 app.use((req, res, next) => {

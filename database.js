@@ -1,97 +1,31 @@
 const mysql = require('mysql');
 require('dotenv').config();
 
-// Force Node.js to use IPv4
-const dns = require('dns');
-dns.setDefaultResultOrder('ipv4first');
-
-// Direct connection string configuration
 const dbConfig = {
-  connectionString: 'mysql://root@localhost:3306/soloparent',
-  
-  // Connection settings
+  host: process.env.DB_HOST || 'localhost',
+  user: process.env.DB_USER || 'root',
+  password: process.env.DB_PASSWORD || '',
+  database: process.env.DB_NAME || 'soloparent',
+  port: process.env.DB_PORT || 3306,
   connectionLimit: 10,
-  connectTimeout: 10000, // 10 seconds
   waitForConnections: true,
   queueLimit: 0,
-  
-  // Debug
-  debug: true,
-  
-  // Additional options
-  multipleStatements: true,
-  insecureAuth: true,
-  
-  // Force TCP/IP connection
-  socketPath: undefined,
-  ssl: false,
-  
-  // Connection flags
-  flags: []
+  enableKeepAlive: true,
+  keepAliveInitialDelay: 0
 };
 
 console.log('Database config:', dbConfig);
 
 const pool = mysql.createPool(dbConfig);
 
-// Enhanced connection test with direct connection string
-console.log('\n=== 🛠️ Testing database connection ===');
-console.log('🔧 Using direct connection string:', dbConfig.connectionString);
-console.log('🔧 Additional settings:', {
-  connectionLimit: dbConfig.connectionLimit,
-  connectTimeout: dbConfig.connectTimeout,
-  connectionType: 'Direct TCP/IP'
-});
-
-console.log('\n🔍 Attempting to connect to MySQL server...');
-
-// Try to get a connection using direct TCP/IP
+// Test the connection
 pool.getConnection((err, connection) => {
   if (err) {
-    console.error('\n❌ Connection failed:', err.message);
-    
-    // More specific error handling
-    if (err.code === 'ECONNREFUSED') {
-      console.log('\n🔧 The connection was refused. This usually means:');
-      console.log('1. MySQL service is not running');
-      console.log('2. MySQL is not accepting connections on port 3306');
-      console.log('3. The MySQL server is not configured to accept TCP/IP connections');
-    } else if (err.code === 'ER_ACCESS_DENIED_ERROR') {
-      console.log('\n🔧 Authentication failed. Please check:');
-      console.log('1. Username is correct');
-      console.log('2. Password is correct (empty in this case)');
-      console.log('3. User has proper permissions');
-    }
-
-    console.log('\n🛠️ Troubleshooting steps:');
-    console.log('1. Open XAMPP/WAMP and ensure MySQL is running (green light)');
-    console.log('2. Try connecting manually using:');
-    console.log('   - XAMPP: Open MySQL console from XAMPP Control Panel');
-    console.log('   - WAMP: Click WAMP icon → MySQL → MySQL Console');
-    console.log('3. If using command line:');
-    console.log('   mysql -u root -h 127.0.0.1 -P 3306');
-    console.log('   (Press Enter when asked for password)');
-    
-    process.exit(1);
+    console.error('Error connecting to database:', err);
+    return;
   }
-
-  console.log('\n✅ Success! Connected to MySQL server');
-  console.log('   Database:', connection.config.database);
-  console.log('   Server version:', connection.state);
-  
-  // Test a simple query
-  console.log('\n🔍 Testing database query...');
-  connection.query('SELECT 1 as test', (err, results) => {
-    if (err) {
-      console.error('❌ Test query failed:', err.message);
-      console.log('\n🔧 This might indicate:');
-      console.log('1. The database does not exist');
-      console.log('2. The user does not have permission to access the database');
-    } else {
-      console.log('✅ Test query successful! Server responded with:', results[0]);
-    }
-    connection.release();
-  });
+  console.log('Successfully connected to database');
+  connection.release();
 });
 
 const queryDatabase = (sql, params) => new Promise((resolve, reject) => {
