@@ -10,8 +10,7 @@ const crypto = require('crypto');
 const allowedOrigins = [
   'http://localhost:3000',
   'http://192.168.254.154:3000',
-  'https://frontend-nine-gamma-56.vercel.app',
-  'https://frontend-nine-gamma-56.vercel.app/'
+  'https://frontend-nine-gamma-56.vercel.app'
 ];
 
 // Enable CORS for all routes
@@ -19,14 +18,14 @@ app.use((req, res, next) => {
   const origin = req.headers.origin;
   if (allowedOrigins.includes(origin)) {
     res.header('Access-Control-Allow-Origin', origin);
+    res.header('Access-Control-Allow-Credentials', 'true');
   }
-  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
-  res.header('Access-Control-Allow-Credentials', true);
   
   // Handle preflight requests
   if (req.method === 'OPTIONS') {
-    return res.sendStatus(200);
+    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization, Content-Length');
+    return res.status(200).json({});
   }
   
   next();
