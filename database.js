@@ -5,13 +5,9 @@ require('dotenv').config();
 const dns = require('dns');
 dns.setDefaultResultOrder('ipv4first');
 
-// Database configuration for Windows with named pipes
+// Direct connection string configuration
 const dbConfig = {
-  host: 'localhost',
-  user: 'root',
-  password: '',
-  database: 'soloparent',
-  port: 3306,
+  connectionString: 'mysql://root@localhost:3306/soloparent',
   
   // Connection settings
   connectionLimit: 10,
@@ -19,35 +15,37 @@ const dbConfig = {
   waitForConnections: true,
   queueLimit: 0,
   
-  // Windows specific settings
-  flags: ['-named-pipe'],
-  
   // Debug
   debug: true,
   
   // Additional options
   multipleStatements: true,
-  insecureAuth: true
+  insecureAuth: true,
+  
+  // Force TCP/IP connection
+  socketPath: undefined,
+  ssl: false,
+  
+  // Connection flags
+  flags: []
 };
 
 console.log('Database config:', dbConfig);
 
 const pool = mysql.createPool(dbConfig);
 
-// Enhanced connection test for Windows
+// Enhanced connection test with direct connection string
 console.log('\n=== 🛠️ Testing database connection ===');
-console.log('🔧 Connection details:', {
-  host: dbConfig.host,
-  port: dbConfig.port,
-  database: dbConfig.database,
-  user: dbConfig.user,
-  hasPassword: dbConfig.password ? 'Yes' : 'No',
-  connectionType: 'Named Pipe (Windows)'
+console.log('🔧 Using direct connection string:', dbConfig.connectionString);
+console.log('🔧 Additional settings:', {
+  connectionLimit: dbConfig.connectionLimit,
+  connectTimeout: dbConfig.connectTimeout,
+  connectionType: 'Direct TCP/IP'
 });
 
 console.log('\n🔍 Attempting to connect to MySQL server...');
 
-// Try to get a connection using named pipe
+// Try to get a connection using direct TCP/IP
 pool.getConnection((err, connection) => {
   if (err) {
     console.error('\n❌ Connection failed:', err.message);
