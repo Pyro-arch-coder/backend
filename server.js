@@ -2,83 +2,42 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const bodyParser = require('body-parser');
+const app = express();
 const nodemailer = require('nodemailer');
 const crypto = require('crypto');
-
-const app = express();
 
 // Configure CORS with proper headers and preflight handling
 const allowedOrigins = [
   'http://localhost:3000',
   'http://192.168.254.154:3000',
-  'https://frontend-djb3u6c4k-yexius-projects.vercel.app',
-  'https://frontend-djb3u6c4k-yexius-projects.vercel.app/',
-  'https://frontend-djb3u6c4k-yexius-projects.vercel.app/*',
-  'https://frontend-*.vercel.app',
-  'https://frontend-*.vercel.app/'
+  'https://frontend-nine-gamma-56.vercel.app'
 ];
 
-// Configure CORS options
-const corsOptions = {
+// Use cors middleware with specific options
+app.use(cors({
   origin: function (origin, callback) {
-    console.log('Incoming origin:', origin);
-    
     // Allow requests with no origin (like mobile apps, curl, etc.)
-    if (!origin) {
-      console.log('No origin, allowing request');
-      return callback(null, true);
+    if (!origin) return callback(null, true);
+    
+    if (allowedOrigins.indexOf(origin) === -1) {
+      const msg = 'The CORS policy for this site does not allow access from the specified Origin.';
+      return callback(new Error(msg), false);
     }
-    
-    // Allow all origins in development
-    if (process.env.NODE_ENV !== 'production') {
-      console.log('Development mode - allowing all origins');
-      return callback(null, true);
-    }
-    
-    // Check if the origin is in the allowedOrigins array
-    const isAllowed = allowedOrigins.some(allowedOrigin => {
-      // If the allowed origin ends with *, treat it as a wildcard
-      if (allowedOrigin.endsWith('*')) {
-        const baseUrl = allowedOrigin.slice(0, -1);
-        return origin.startsWith(baseUrl);
-      }
-      return origin === allowedOrigin;
-    });
-    
-    if (isAllowed) {
-      console.log('Origin allowed:', origin);
-      return callback(null, true);
-    }
-    
-    console.log('CORS blocked for origin:', origin, 'Allowed origins:', allowedOrigins);
-    const msg = 'The CORS policy for this site does not allow access from the specified Origin.';
-    return callback(new Error(msg), false);
+    return callback(null, true);
   },
   credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
-  allowedHeaders: [
-    'Content-Type', 
-    'Authorization', 
-    'X-Requested-With', 
-    'Accept',
-    'X-Access-Token',
-    'X-Refresh-Token'
-  ],
-  exposedHeaders: [
-    'Content-Length',
-    'X-Foo',
-    'X-Bar',
-    'X-Access-Token',
-    'X-Refresh-Token'
-  ],
-  maxAge: 600 // 10 minutes
-};
-
-// Apply CORS middleware with the configured options
-app.use(cors(corsOptions));
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept'],
+  exposedHeaders: ['Content-Length', 'X-Foo', 'X-Bar']
+}));
 
 // Handle preflight requests
-app.options('*', cors(corsOptions));
+app.options('*', cors({
+  origin: allowedOrigins,
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept']
+}));
 app.use(express.json({ limit: '50mb' }));
 app.use(bodyParser.json({ limit: '50mb' }));
 
