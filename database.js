@@ -2,16 +2,22 @@ const mysql = require('mysql');
 require('dotenv').config();
 
 const dbConfig = {
-  host: process.env.DB_HOST || 'localhost',
+  host: process.env.DB_HOST || '127.0.0.1',  // Using IPv4 localhost
   user: process.env.DB_USER || 'root',
   password: process.env.DB_PASSWORD || '',
   database: process.env.DB_NAME || 'soloparent',
-  port: process.env.DB_PORT || 3306,  // Explicitly setting MySQL port to 3306
+  port: parseInt(process.env.DB_PORT) || 3306,  // Ensure port is a number
   connectionLimit: 10,
   waitForConnections: true,
   queueLimit: 0,
   enableKeepAlive: true,
-  keepAliveInitialDelay: 0
+  keepAliveInitialDelay: 0,
+  // Force IPv4
+  socketPath: null,
+  // Additional connection settings
+  connectTimeout: 10000, // 10 seconds
+  acquireTimeout: 10000, // 10 seconds
+  debug: process.env.NODE_ENV === 'development' // Enable debug in development
 };
 
 console.log('Database config:', dbConfig);
@@ -19,12 +25,32 @@ console.log('Database config:', dbConfig);
 const pool = mysql.createPool(dbConfig);
 
 // Test the connection
+console.log('Attempting to connect to database with config:', {
+  host: dbConfig.host,
+  port: dbConfig.port,
+  database: dbConfig.database,
+  user: dbConfig.user,
+  usingSocket: !!dbConfig.socketPath
+});
+
 pool.getConnection((err, connection) => {
   if (err) {
-    console.error('Error connecting to database:', err);
-    return;
+    console.error('❌ Error connecting to database:', {
+      message: err.message,
+      code: err.code,
+      errno: err.errno,
+      address: err.address,
+      port: err.port,
+      stack: err.stack
+    });
+    console.error('💡 Troubleshooting tips:');
+    console.error('1. Make sure MySQL server is running');
+    console.error('2. Verify the database credentials in .env file');
+    console.error('3. Check if MySQL is configured to accept connections on 127.0.0.1');
+    console.error('4. Try connecting manually using: mysql -h 127.0.0.1 -u root -p');
+    process.exit(1);
   }
-  console.log('Successfully connected to database');
+  console.log('✅ Successfully connected to database');
   connection.release();
 });
 
