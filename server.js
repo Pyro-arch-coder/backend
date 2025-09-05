@@ -11,7 +11,8 @@ app.use(cors({
   origin: (origin, callback) => {
     const allowedOrigins = [
       'http://localhost:3000',
-      'http://192.168.254.154:3000'
+      'http://192.168.254.154:3000',
+      'https://frontend-chi-gules.vercel.app/'
     ];
     if (!origin || allowedOrigins.includes(origin)) {
       callback(null, true);
