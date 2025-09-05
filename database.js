@@ -1,58 +1,93 @@
 const mysql = require('mysql');
 require('dotenv').config();
 
-// Simple database configuration
+// Force Node.js to use IPv4
+const dns = require('dns');
+dns.setDefaultResultOrder('ipv4first');
+
+// Database configuration with forced IPv4 and no password
 const dbConfig = {
-  host: 'localhost',  // Use 'localhost' instead of 127.0.0.1
-  user: 'root',       // Default MySQL user
-  password: '',       // No password by default
+  host: '127.0.0.1',  // Force IPv4
+  user: 'root',
+  password: '',       // No password
   database: 'soloparent',
   port: 3306,
+  // Connection settings
   connectionLimit: 10,
+  connectTimeout: 10000, // 10 seconds
   waitForConnections: true,
   queueLimit: 0,
-  // Timeout settings
-  connectTimeout: 10000, // 10 seconds
-  // Enable for debugging
-  debug: true
+  // Force TCP/IP connection (not socket)
+  socketPath: null,
+  // Disable IPv6
+  ipFamily: 4,
+  // Debug
+  debug: true,
+  // Additional options
+  multipleStatements: true,
+  // Ensure no password is sent
+  insecureAuth: true
 };
 
 console.log('Database config:', dbConfig);
 
 const pool = mysql.createPool(dbConfig);
 
-// Simple connection test
-console.log('\n=== Testing database connection ===');
-console.log('Trying to connect to:', {
+// Enhanced connection test
+console.log('\n=== 🛠️ Testing database connection ===');
+console.log('🔧 Connection details:', {
   host: dbConfig.host,
   port: dbConfig.port,
   database: dbConfig.database,
-  user: dbConfig.user
+  user: dbConfig.user,
+  hasPassword: dbConfig.password ? 'Yes' : 'No'
 });
+
+console.log('\n🔍 Checking if MySQL is running...');
 
 pool.getConnection((err, connection) => {
   if (err) {
-    console.error('❌ Connection failed:', err.message);
-    console.log('\nPlease try these steps:');
-    console.log('1. Open XAMPP or WAMP and start MySQL');
-    console.log('2. Make sure MySQL is running on port 3306');
-    console.log('3. Check if you can connect using:');
-    console.log('   - Open XAMPP/WAMP MySQL console');
-    console.log('   - Or use: mysql -u root -h localhost');
-    console.log('4. If using XAMPP, the default password is empty (press Enter)');
+    console.error('\n❌ Connection failed:', err.message);
+    
+    // More specific error handling
+    if (err.code === 'ECONNREFUSED') {
+      console.log('\n🔧 The connection was refused. This usually means:');
+      console.log('1. MySQL service is not running');
+      console.log('2. MySQL is not accepting connections on port 3306');
+      console.log('3. The MySQL server is not configured to accept TCP/IP connections');
+    } else if (err.code === 'ER_ACCESS_DENIED_ERROR') {
+      console.log('\n🔧 Authentication failed. Please check:');
+      console.log('1. Username is correct');
+      console.log('2. Password is correct (empty in this case)');
+      console.log('3. User has proper permissions');
+    }
+
+    console.log('\n🛠️ Troubleshooting steps:');
+    console.log('1. Open XAMPP/WAMP and ensure MySQL is running (green light)');
+    console.log('2. Try connecting manually using:');
+    console.log('   - XAMPP: Open MySQL console from XAMPP Control Panel');
+    console.log('   - WAMP: Click WAMP icon → MySQL → MySQL Console');
+    console.log('3. If using command line:');
+    console.log('   mysql -u root -h 127.0.0.1 -P 3306');
+    console.log('   (Press Enter when asked for password)');
+    
     process.exit(1);
   }
 
-  console.log('✅ Connected to MySQL!');
+  console.log('\n✅ Success! Connected to MySQL server');
   console.log('   Database:', connection.config.database);
   console.log('   Server version:', connection.state);
   
   // Test a simple query
+  console.log('\n🔍 Testing database query...');
   connection.query('SELECT 1 as test', (err, results) => {
     if (err) {
       console.error('❌ Test query failed:', err.message);
+      console.log('\n🔧 This might indicate:');
+      console.log('1. The database does not exist');
+      console.log('2. The user does not have permission to access the database');
     } else {
-      console.log('✅ Test query successful!');
+      console.log('✅ Test query successful! Server responded with:', results[0]);
     }
     connection.release();
   });
