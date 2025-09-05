@@ -12,7 +12,7 @@ app.use(cors({
     const allowedOrigins = [
       'http://localhost:3000',
       'http://192.168.254.154:3000',
-      'https://frontend-chi-gules.vercel.app/'
+      'https://frontend-nine-gamma-56.vercel.app/'
     ];
     if (!origin || allowedOrigins.includes(origin)) {
       callback(null, true);
