@@ -1,58 +1,107 @@
 const mysql = require('mysql');
 require('dotenv').config();
 
+// Force Node.js to use IPv4
+const dns = require('dns');
+dns.setDefaultResultOrder('ipv4first');
+
 const dbConfig = {
-  host: process.env.DB_HOST || '127.0.0.1',  // Using IPv4 localhost
+  host: process.env.DB_HOST || '127.0.0.1',  // Force IPv4
   user: process.env.DB_USER || 'root',
   password: process.env.DB_PASSWORD || '',
   database: process.env.DB_NAME || 'soloparent',
-  port: parseInt(process.env.DB_PORT) || 3306,  // Ensure port is a number
+  port: parseInt(process.env.DB_PORT) || 3306,
   connectionLimit: 10,
   waitForConnections: true,
   queueLimit: 0,
-  enableKeepAlive: true,
-  keepAliveInitialDelay: 0,
-  // Force IPv4
+  // Force IPv4 and add retry logic
   socketPath: null,
-  // Additional connection settings
+  // Timeout settings
   connectTimeout: 10000, // 10 seconds
   acquireTimeout: 10000, // 10 seconds
-  debug: process.env.NODE_ENV === 'development' // Enable debug in development
+  timeout: 10000, // 10 seconds
+  // Retry settings
+  enableKeepAlive: true,
+  keepAliveInitialDelay: 0,
+  // Debug
+  debug: false, // Set to true for more verbose logging
+  // Force IPv4
+  typeCast: function(field, next) { return next(); },
+  // Disable IPv6
+  ipFamily: 4,
+  // Add retry logic
+  retryAttempts: 3,
+  retryDelay: 1000 // 1 second between retries
 };
 
 console.log('Database config:', dbConfig);
 
 const pool = mysql.createPool(dbConfig);
 
-// Test the connection
-console.log('Attempting to connect to database with config:', {
-  host: dbConfig.host,
-  port: dbConfig.port,
-  database: dbConfig.database,
-  user: dbConfig.user,
-  usingSocket: !!dbConfig.socketPath
-});
+// Connection test with retry logic
+const maxRetries = 3;
+let retryCount = 0;
 
-pool.getConnection((err, connection) => {
-  if (err) {
-    console.error('❌ Error connecting to database:', {
-      message: err.message,
-      code: err.code,
-      errno: err.errno,
-      address: err.address,
-      port: err.port,
-      stack: err.stack
+const testConnection = () => {
+  console.log(`\n=== Attempting to connect to database (Attempt ${retryCount + 1}/${maxRetries}) ===`);
+  console.log('Connection details:', {
+    host: dbConfig.host,
+    port: dbConfig.port,
+    database: dbConfig.database,
+    user: dbConfig.user,
+    usingIPv4: true
+  });
+
+  pool.getConnection((err, connection) => {
+    if (err) {
+      retryCount++;
+      
+      console.error(`❌ Connection failed (Attempt ${retryCount}/${maxRetries}):`, {
+        message: err.message,
+        code: err.code,
+        address: err.address || dbConfig.host,
+        port: err.port || dbConfig.port
+      });
+
+      if (retryCount < maxRetries) {
+        console.log(`Retrying in 2 seconds...`);
+        return setTimeout(testConnection, 2000);
+      }
+
+      console.error('\n💡 Troubleshooting tips:');
+      console.error('1. Make sure MySQL server is running');
+      console.error('   - On Windows: Open Services and check if "MySQL" is running');
+      console.error('   - On Linux/macOS: Run `sudo service mysql status` or `brew services list`');
+      console.error('2. Verify MySQL is accessible using:');
+      console.error('   mysql -h 127.0.0.1 -u root -p');
+      console.error('3. Check if MySQL is configured to accept connections');
+      console.error('   - Look for bind-address in my.ini (Windows) or my.cnf (Linux/macOS)');
+      console.error('   - It should be: bind-address = 0.0.0.0 or bind-address = 127.0.0.1');
+      console.error('4. Check if the MySQL port is correct (default is 3306)');
+      console.error('5. Verify the database user has the correct permissions');
+      
+      process.exit(1);
+    }
+
+    console.log('✅ Successfully connected to database');
+    console.log('   Database:', connection.config.database);
+    console.log('   Connection ID:', connection.threadId);
+    console.log('   Server version:', connection.state);
+    
+    // Test a simple query
+    connection.query('SELECT 1 as test', (err, results) => {
+      if (err) {
+        console.error('❌ Test query failed:', err.message);
+      } else {
+        console.log('✅ Test query successful:', results[0]);
+      }
+      connection.release();
     });
-    console.error('💡 Troubleshooting tips:');
-    console.error('1. Make sure MySQL server is running');
-    console.error('2. Verify the database credentials in .env file');
-    console.error('3. Check if MySQL is configured to accept connections on 127.0.0.1');
-    console.error('4. Try connecting manually using: mysql -h 127.0.0.1 -u root -p');
-    process.exit(1);
-  }
-  console.log('✅ Successfully connected to database');
-  connection.release();
-});
+  });
+};
+
+// Start the connection test
+testConnection();
 
 const queryDatabase = (sql, params) => new Promise((resolve, reject) => {
   pool.getConnection((err, connection) => {
