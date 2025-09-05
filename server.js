@@ -13,6 +13,13 @@ const allowedOrigins = [
   'https://frontend-nine-gamma-56.vercel.app'
 ];
 
+const pool = mysql.createPool({
+  host: process.env.DB_HOST,   // e.g. mysql-1234.railway.app
+  user: process.env.DB_USER,
+  password: process.env.DB_PASS,
+  database: process.env.DB_NAME,
+  port: process.env.DB_PORT || 3306
+});
 // Use cors middleware with specific options
 app.use(cors({
   origin: function (origin, callback) {
